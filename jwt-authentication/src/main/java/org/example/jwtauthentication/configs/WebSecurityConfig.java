@@ -1,5 +1,6 @@
 package org.example.jwtauthentication.configs;
 
+import jakarta.servlet.http.HttpServletResponse;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -19,8 +20,25 @@ public class WebSecurityConfig {
     @Bean
     SecurityFilterChain securityFilterChain(HttpSecurity httpSecurity, JWTAuthFilter JWTAuthFilter) throws Exception {
         httpSecurity
+                .exceptionHandling(exceptions -> exceptions
+                        .authenticationEntryPoint((request, response, ex) ->
+                                response.sendError(
+                                        HttpServletResponse.SC_UNAUTHORIZED,
+                                        "Authentication required"
+                                )
+                        )
+                        .accessDeniedHandler((request, response, ex) ->
+                                response.sendError(
+                                        HttpServletResponse.SC_FORBIDDEN,
+                                        "Access denied"
+                                )
+                        )
+                )
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/apis/**").permitAll()
+                        .requestMatchers(
+                                "/apis/auth/sign-up",
+                                "/apis/auth/login"
+                        ).permitAll()
                         .anyRequest().authenticated())
                 .csrf(csrfConfig -> csrfConfig.disable())
                 .sessionManagement(sessionConfig -> sessionConfig.sessionCreationPolicy(SessionCreationPolicy.STATELESS))

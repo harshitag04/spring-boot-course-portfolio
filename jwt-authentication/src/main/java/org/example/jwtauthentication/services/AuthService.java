@@ -1,10 +1,13 @@
 package org.example.jwtauthentication.services;
 
+import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.example.jwtauthentication.DTO.LoginDTO;
 import org.example.jwtauthentication.DTO.RegisterDTO;
 import org.example.jwtauthentication.DTO.UserDTO;
+import org.example.jwtauthentication.entities.SessionEntity;
 import org.example.jwtauthentication.entities.UserEntity;
+import org.example.jwtauthentication.repositories.SessionRepository;
 import org.example.jwtauthentication.repositories.UserRepository;
 import org.modelmapper.ModelMapper;
 import org.springframework.security.authentication.AuthenticationManager;
@@ -22,6 +25,7 @@ public class AuthService {
     private final PasswordEncoder passwordEncoder;
     private final AuthenticationManager authenticationManager;
     private final JWTService jwtService;
+    private final SessionRepository sessionRepository;
 
     public UserDTO signUp(RegisterDTO registerDTO) {
 
@@ -40,12 +44,28 @@ public class AuthService {
 
     }
 
+    @Transactional
     public String logIn(LoginDTO loginDTO) {
 
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken
                 (loginDTO.getUsername(), loginDTO.getPassword()));
         UserEntity user = (UserEntity) authentication.getPrincipal();
-        return jwtService.generateToken(user);
+        String token = jwtService.generateToken(user);
+
+        //Remove the user's previous session
+        sessionRepository.deleteByUserId(user.getId());
+
+        // Force the DELETE to execute before the INSERT
+        sessionRepository.flush();
+
+        SessionEntity sessionEntity = SessionEntity.builder()
+                .token(token)
+                .userId(user.getId())
+                .build();
+
+        sessionRepository.save(sessionEntity);
+
+        return token;
     }
 }

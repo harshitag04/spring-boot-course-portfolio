@@ -1,15 +1,21 @@
 package org.example.jwtauthentication.entities;
 
 import jakarta.persistence.*;
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 
 @Entity
 @Getter
 @Setter
-@RequiredArgsConstructor
-@Table(name = "sessions")
+@NoArgsConstructor
+@AllArgsConstructor
+@Builder
+@Table(name = "sessions",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uk_sessions_user_id",
+                        columnNames = "user_id"
+                )
+        })
 public class SessionEntity {
 
     @Id
